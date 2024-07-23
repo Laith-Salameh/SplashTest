@@ -14,10 +14,11 @@ export class RoundService {
       const multiplier = isCorrect? dto.multiplierGuess : -1;
       const roundOutcome = multiplier * dto.pointsBid; 
       
-      const newRound = new Round(dto);
-      newRound.isCorrect = isCorrect;
-      newRound.roundOutcome= roundOutcome;
-      
+      const newRound = {
+        ...dto,
+        isCorrect: isCorrect,
+        roundOutcome: roundOutcome
+      }      
       const round = await this.roundModel.create(newRound);
       return round;
     }

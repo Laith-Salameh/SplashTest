@@ -61,7 +61,7 @@ export class GameEngineGateway implements OnGatewayConnection,OnGatewayDisconnec
 
 
 
-  @SubscribeMessage('joinRoom')
+  @SubscribeMessage('join-room')
   async handleJoinRoom(@MessageBody() data: { userName: string, userId: string }) {
     const user: createUserDto = {
       userId: data.userId,
@@ -95,6 +95,26 @@ export class GameEngineGateway implements OnGatewayConnection,OnGatewayDisconnec
     } catch (error) {
       console.error(error)
       client.emit('join-room-error', "error joining room, try again");
+    }
+  }
+
+  @SubscribeMessage('play-round')
+  async handlePlayRound(@MessageBody() data: { userId: string, pointsBid: number, multiplier: number }) {
+    const user = await this.userService.getUser(data.userId);
+    const client = clients[data.userId];
+    if(!user) client.emit('play-round-error', "User not found");
+    const roomId = connectedUsers[data.userId];
+
+    //TODO: create seperate endpoint to wait for all users to send guess,
+    // or have a timer for the rounds for each room
+    //going with assumption user only plays with Bots
+
+
+    try {
+      this.server.to(roomId).emit('play-round-success', { ...user, gameId: roomId });
+    } catch (error) {
+      console.error(error)
+      this.server.to(roomId).emit('play-round-error', "error geneating round, try again");
     }
   }
 

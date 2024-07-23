@@ -9,7 +9,7 @@ export const Welcome = ()=>{
     const [name, setName] = useState<string>("");
     
     const buttonHandleClick = ()=>{ 
-        name && emit("joinRoom", {userName: name, userId: socket?.id});
+        name && emit("join-room", {userName: name, userId: socket?.id});
     };
 
     on("join-room-error", (err)=> {console.error(err)})

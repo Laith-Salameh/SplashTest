@@ -3,11 +3,17 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Game } from '@GameEngine/Models';
 import { v4 as uuidv4 } from 'uuid';
+import { RoundService } from '../round/round.service';
+import { playRoundDto, PlayRoundRes, RoundOutcomesForPlayer } from './gameDtos';
+import { createRoundDto } from '../round/roundDtos';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class GameService {
   constructor(
     @InjectModel(Game.name) private readonly gameModel: Model<Game>,
+    @Injectable(RoundService) private readonly roundService: RoundService,
+    @Injectable(UserService) private readonly userService: UserService
   ) {}
 
   async createGame(gameId: string, userGuid: string): Promise<Game> {
@@ -38,5 +44,29 @@ export class GameService {
       console.error('Error updating game:', error);
       throw error;
     }
+  }
+
+  private generateMultiplier(){
+    return (Math.random()) * 10;
+  }
+
+  async playRound(data: playRoundDto): Promise<PlayRoundRes | null>{
+    const {gameId, playerGuesses } = data;
+    const multiplier = this.generateMultiplier();
+    const res:RoundOutcomesForPlayer[] = []
+    playerGuesses.forEach(async(guess)=>{
+      //create round and use the outcome to update user points accordingly
+      const round = await this.roundService.createRound({...guess,gameId:gameId} , multiplier )
+      const user= await this.userService.updateUserPoints({score: round.roundOutcome, userId: guess.userId})
+      res.push({
+        userName: user.userName, 
+        score: user.score, 
+        userBid: guess.pointsBid, 
+        userGuess: guess.multiplierGuess, 
+        userIsCorrect: round.isCorrect,
+        userGain: round.roundOutcome 
+      })
+    })
+    return { roundCrashMultiplier: multiplier ,roundOutcomesForPlayer: res};
   }
 }
