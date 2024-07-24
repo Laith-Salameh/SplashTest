@@ -23,6 +23,8 @@ const config: Config = {
       black: "#000",
       gray: '#aaa',
       white: '#FFF',
+      red: '#F00',
+      green: "#0F0"
     },
   },
   plugins: [],

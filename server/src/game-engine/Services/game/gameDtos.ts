@@ -8,10 +8,6 @@ export interface addUserToGameDto{
     userId: string;
 }
 
-export interface playRoundDto{
-    gameId: string;
-    playerGuesses: playerGuess[];
-}
 
 export interface playerGuess{
     pointsBid: number;
@@ -26,11 +22,17 @@ export interface RoundOutcomesForPlayer{
     score: number;
     userBid: number;
     userGuess: number; 
-    userIsCorrect: boolean;
     userGain: number ;
+    userId: string;
+}
+
+export interface BotsInfo{
+    score: number;
+    userName: string;
+    userId: string;
 }
 
 export interface PlayRoundRes{
-    roundOutcomesForPlayer: RoundOutcomesForPlayer[];
+    roundOutcomesForPlayers: RoundOutcomesForPlayer[];
     roundCrashMultiplier: number;
 }

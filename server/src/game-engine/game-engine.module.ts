@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { GameService, UserService, ChatService } from '@GameEngine/Services/';
+import { GameService, UserService, ChatService, RoundService } from '@GameEngine/Services/';
 import { GameEngineGateway } from './game-engine.gateway';
 import { ChatMessageSchema, GameSchema, RoundSchema, UserSchema } from '@GameEngine/Models';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -13,7 +13,7 @@ import { MongooseModule } from '@nestjs/mongoose';
             { name: 'ChatMessage', schema: ChatMessageSchema },
         ]),
     ],
-    providers:[GameService, UserService, ChatService, GameEngineGateway, ],
+    providers:[GameService, UserService, ChatService, GameEngineGateway, RoundService ],
     exports: []
 })
 export class GameEngineModule {}

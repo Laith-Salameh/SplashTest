@@ -1,14 +1,16 @@
+
 import TitleLayout from "./TitleLayout";
 
 interface TableProps {
     headers: string[];
-    data: { [key: string]: string }[];
+    data: any[];
     iconSrc: string;
     title: string;
     rowPadding?: string;
+    showResults: boolean;
 }
 
-const Table: React.FC<TableProps> = ({ headers, data, title, iconSrc, rowPadding="py-2" }) => {
+const Table: React.FC<TableProps> = ({ headers, data, title, iconSrc, rowPadding="py-2", showResults=false }) => {
     return (
         <TitleLayout title={title} iconSrc={iconSrc} >
             <div className="overflow-hidden rounded-md">
@@ -26,8 +28,8 @@ const Table: React.FC<TableProps> = ({ headers, data, title, iconSrc, rowPadding
                         {data.map((row, rowIndex) => (
                             <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-secondary-200' : 'bg-secondary'}>
                                 {headers.map((header, colIndex) => (
-                                    <td key={`${rowIndex}-${colIndex}`} className={`px-6 ${rowPadding} text-white`}>
-                                        {row[header] || '-'}
+                                    <td key={`${rowIndex}-${colIndex}`} className={`px-6 ${rowPadding} ${showResults? (row?.color ?? "text-white"):  "text-white"}`}>
+                                        {showResults? row[header] : '-'}
                                     </td>
                                 ))}
                             </tr>

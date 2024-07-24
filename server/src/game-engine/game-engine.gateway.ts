@@ -8,9 +8,11 @@ import { GameService, UserService } from './Services';
 import { createUserDto } from './Services/user/userDtos';
 import { v4 as uuidv4 } from 'uuid';
 
-
+//has each client and which room he is in
 const connectedUsers: { [guid: string]: string } = {}; 
+//has the client sockets linked with his clientid
 const clients: {[guid: string]: Socket}= {}
+//has each room with its clients
 const rooms: { [roomId: string]: string[] } = {};
 
 
@@ -36,7 +38,9 @@ export class GameEngineGateway implements OnGatewayConnection,OnGatewayDisconnec
 
   handleDisconnect(client: Socket) {
     const roomId = connectedUsers[client.id];
-    rooms[roomId] = rooms[roomId]?.filter(x => x !== client.id) ?? [];
+    if(roomId){
+      rooms[roomId] = rooms[roomId]?.filter(x => x !== client.id) ?? [];
+    }
     delete clients[client.id];
     delete connectedUsers[client.id];
   }
@@ -44,9 +48,13 @@ export class GameEngineGateway implements OnGatewayConnection,OnGatewayDisconnec
 
   @SubscribeMessage('chat-message')
   async handleMessage(@MessageBody() data: { message: string, userId: string }) {
+    console.log("sending message from", data)
     const client = clients[data.userId];
     const user = await this.userService.getUser(data.userId);
-    if(!user) client.emit('chat-message-error', "User not found");
+    if(!user) {
+      client?.emit('chat-message-error', "User not found");
+      return;
+    }
     const roomId = connectedUsers[data.userId];
 
     const chat = await this.chatService.create({
@@ -54,8 +62,8 @@ export class GameEngineGateway implements OnGatewayConnection,OnGatewayDisconnec
       message: data.message,
       senderUserId: data.userId,
     });
-
-    this.server.to(roomId).emit('chat-message', { ...chat }); 
+    console.log("sent message to ",roomId,{ message: data.message, senderUserName: user.userName })
+    this.server.to(roomId).emit('chat-message', { message: data.message, senderUserName: user.userName }); 
     return chat;
   }
 
@@ -70,7 +78,6 @@ export class GameEngineGateway implements OnGatewayConnection,OnGatewayDisconnec
     };
     console.info(`User ${user.userName} registered with session ID ${data.userId}`);
     const client = clients[data.userId];
-
     try {
       const userGuid = user.userId
       await this.userService.createUser(user); 
@@ -102,13 +109,24 @@ export class GameEngineGateway implements OnGatewayConnection,OnGatewayDisconnec
   async handlePlayRound(@MessageBody() data: { userId: string, pointsBid: number, multiplier: number }) {
     const user = await this.userService.getUser(data.userId);
     const client = clients[data.userId];
-    if(!user) client.emit('play-round-error', "User not found");
+    if(!user) {
+      client.emit('play-round-error', "User not found");
+      return;
+    }
     const roomId = connectedUsers[data.userId];
 
     //TODO: create seperate endpoint to wait for all users to send guess,
     // or have a timer for the rounds for each room
-    //going with assumption user only plays with Bots
-
+    // going with assumption user only plays with Bots
+    const BotsGuess = this.gameService.generateBotsGuess();
+    const playerGuesses = BotsGuess.concat( {
+      pointsBid: data.pointsBid,
+      multiplierGuess: data.multiplier,
+      userId: user.userId,
+      isBot: false
+    })
+    const roundResults = await this.gameService.playRound(roomId, playerGuesses);
+    this.server.to(roomId).emit('play-round-results', roundResults);
 
     try {
       this.server.to(roomId).emit('play-round-success', { ...user, gameId: roomId });

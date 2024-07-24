@@ -22,7 +22,7 @@ const ChatBox: React.FC = () => {
     const sendMessage = () => {
         const message = messageInputRef.current?.value;
         if (message && socket && clientInfo) {
-            sendChatMessage({ sender: clientInfo.userName, content: message }, socket);
+            sendChatMessage({ userId: clientInfo.userId, message: message }, socket);
             messageInputRef.current.value = '';
         }
     };

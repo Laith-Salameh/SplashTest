@@ -9,14 +9,8 @@ import TitleLayout from "./UI/TitleLayout";
 import { useGameStore } from "@/store/store";
 
 export const PlayerDashboard = ()=>{
-    const { socket,emit, on} = useSocket();
-    const {setSpeed} = useGameStore();
+    const {setSpeed, lastRound, roundDone} = useGameStore();
     
-    const buttonHandleClick = ()=>{ 
-        emit("joinRoom", {userName: name, userId: socket?.id});
-    };
-
-
 
     return (<div className="w-full flex flex-col gap-2">
         <PlayerControls/>
@@ -25,7 +19,8 @@ export const PlayerDashboard = ()=>{
             iconSrc="/images/trophy.png"
             rowPadding="py-1.5"
             headers={["Name","Points","Multiplier"]} 
-            data={[{"Name": "name","Points": "-","Multiplier":"-"},{"Name": "name","Points": "-","Multiplier":"-"},{"Name": "name","Points": "-","Multiplier":"-"},{"Name": "name","Points": "-","Multiplier":"-"},{"Name": "name","Points": "-","Multiplier":"-"},]}
+            data={lastRound}
+            showResults={roundDone}
         />
         <TitleLayout title="Speed" iconSrc="/images/fast.png">
             <Slider onChange={(val)=>{setSpeed(val)}} max={5} min={1}/>

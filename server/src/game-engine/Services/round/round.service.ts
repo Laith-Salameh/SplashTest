@@ -11,8 +11,8 @@ export class RoundService {
   
     async createRound(dto: createRoundDto, generatedMultiplier: number): Promise<Round> {
       const isCorrect = dto.multiplierGuess < generatedMultiplier;
-      const multiplier = isCorrect? dto.multiplierGuess : -1;
-      const roundOutcome = multiplier * dto.pointsBid; 
+      const multiplier = isCorrect ? dto.multiplierGuess : -1;
+      const roundOutcome = Math.floor(multiplier * dto.pointsBid); 
       
       const newRound = {
         ...dto,

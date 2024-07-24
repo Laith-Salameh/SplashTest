@@ -1,20 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Game } from '@GameEngine/Models';
-import { v4 as uuidv4 } from 'uuid';
 import { RoundService } from '../round/round.service';
-import { playRoundDto, PlayRoundRes, RoundOutcomesForPlayer } from './gameDtos';
-import { createRoundDto } from '../round/roundDtos';
+import { BotsInfo, playerGuess, PlayRoundRes, RoundOutcomesForPlayer } from './gameDtos';
 import { UserService } from '../user/user.service';
 
 @Injectable()
 export class GameService {
+  private BotsInfo: BotsInfo[] = [];
+
   constructor(
     @InjectModel(Game.name) private readonly gameModel: Model<Game>,
-    @Injectable(RoundService) private readonly roundService: RoundService,
-    @Injectable(UserService) private readonly userService: UserService
-  ) {}
+    @Inject(RoundService) private readonly roundService: RoundService,
+    @Inject(UserService) private readonly userService: UserService
+  ) {
+      this.BotsInfo = Array(4).fill(null).map((_,i)=>({ userId: `Bot ${i}`, userName: `Bot ${i}`, score: 1000}));
+  }
+
 
   async createGame(gameId: string, userGuid: string): Promise<Game> {
     try {
@@ -46,27 +49,48 @@ export class GameService {
     }
   }
 
+
   private generateMultiplier(){
     return (Math.random()) * 10;
   }
 
-  async playRound(data: playRoundDto): Promise<PlayRoundRes | null>{
-    const {gameId, playerGuesses } = data;
+
+  private generateBid(currentpoints: number){
+    return Math.floor(Math.random() * currentpoints);
+  }
+
+  generateBotsGuess(): playerGuess[]{
+    return this.BotsInfo.map(bot=>({
+      pointsBid: this.generateBid(bot.score),
+      multiplierGuess: this.generateMultiplier(),
+      userId: bot.userId,
+      isBot: true,
+    }))
+  }
+
+  async playRound(gameId: string, playerGuesses: playerGuess[]): Promise<PlayRoundRes | null>{
     const multiplier = this.generateMultiplier();
-    const res:RoundOutcomesForPlayer[] = []
-    playerGuesses.forEach(async(guess)=>{
-      //create round and use the outcome to update user points accordingly
-      const round = await this.roundService.createRound({...guess,gameId:gameId} , multiplier )
-      const user= await this.userService.updateUserPoints({score: round.roundOutcome, userId: guess.userId})
-      res.push({
-        userName: user.userName, 
-        score: user.score, 
-        userBid: guess.pointsBid, 
-        userGuess: guess.multiplierGuess, 
-        userIsCorrect: round.isCorrect,
-        userGain: round.roundOutcome 
-      })
-    })
-    return { roundCrashMultiplier: multiplier ,roundOutcomesForPlayer: res};
+    const roundResults:RoundOutcomesForPlayer[] = []
+    for (const guess of playerGuesses) {
+      try {
+        const round = await this.roundService.createRound({...guess,gameId:gameId} , multiplier);
+        const BotScore = guess.isBot? this.BotsInfo.filter(x=>x.userId == guess.userId)?.[0]?.score : 0;
+        const user = !guess.isBot
+        ? await this.userService.updateUserPoints({ score: round.roundOutcome, userId: guess.userId })
+        : { userId: guess.userId,userName: guess.userId, score:  Math.max(BotScore + round.roundOutcome, 0)}; 
+        
+        roundResults.unshift({
+          userName: user.userName,
+          score: user.score,
+          userBid: guess.pointsBid,
+          userGuess: guess.multiplierGuess,
+          userGain: round.roundOutcome,
+          userId: user.userId
+        });
+      } catch (error) {
+        console.error('Error processing player guess:', error);
+      }
+    }
+    return { roundCrashMultiplier: multiplier ,roundOutcomesForPlayers: roundResults};
   }
 }
